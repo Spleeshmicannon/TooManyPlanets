@@ -42,8 +42,10 @@ static constexpr size_t height = 1071;
 
 // some useful macros
 #define WINDOW_TITLE "OpenCL Render"
-#define MATRIX_HEIGHT 50000
+#define MATRIX_HEIGHT 20000
 #define MATRIX_WIDTH 5
+#define RENDER_DIMENSIONS 2
+#define POINTS_COUNT 6
 
 // a convenient struct for storing the many OpenCL objects
 // that get used
@@ -59,8 +61,8 @@ struct clObjects
 };
 
 // computing sizes at compile time
-constexpr size_t planets_size_full = MATRIX_HEIGHT * MATRIX_WIDTH * sizeof(float);
-constexpr size_t planets_size_points = MATRIX_HEIGHT * 2 * sizeof(float);
+constexpr size_t planets_size = MATRIX_HEIGHT * MATRIX_WIDTH * sizeof(float);
+constexpr size_t planets_size_points = MATRIX_HEIGHT * RENDER_DIMENSIONS * sizeof(float) * POINTS_COUNT;
 
 // global variables
 clObjects clObjs;
@@ -116,7 +118,7 @@ INLINE void setupOpenCL()
 
 	for (int i = 0; i < MATRIX_HEIGHT; ++i)
 	{
-		planets[(i * MATRIX_WIDTH) + 0 /*mass*/] = (float(rand() % 999) + 1.0f);
+		planets[(i * MATRIX_WIDTH) + 0 /*mass*/] = (float(rand() % 99) + 1.0f);
 		planets[(i * MATRIX_WIDTH) + 1 /*x*/] = ((float(rand() % width / 4)) * 2) + float(width / 4);
 		planets[(i * MATRIX_WIDTH) + 2 /*y*/] = ((float(rand() % height / 4)) * 2) + float(height / 4);
 		planets[(i * MATRIX_WIDTH) + 3 /*dx*/] = 0;
@@ -158,7 +160,7 @@ INLINE void setupOpenCL()
 	}
 
 	// setting up GPU memory objects
-	clObjs.inBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size_full);
+	clObjs.inBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size);
 	clObjs.outBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size_points);
 
 	// assigning vertex buffer to an OpenCL object for OpenCL OpenGL interop
@@ -166,7 +168,7 @@ INLINE void setupOpenCL()
 
 	// buffer initialisation
 	clObjs.queue = cl::CommandQueue(clObjs.context, cl::Device::getDefault());
-	clObjs.queue.enqueueWriteBuffer(clObjs.inBuffer, CL_TRUE, 0, planets_size_full, planets);
+	clObjs.queue.enqueueWriteBuffer(clObjs.inBuffer, CL_TRUE, 0, planets_size, planets);
 
 	// setting up compiled kernel for execution
 	clObjs.physicsKernel = cl::Kernel(clObjs.program, "planetCalc");
@@ -185,9 +187,10 @@ INLINE void configureOpenGL()
 	// make the new vbo active
 	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
 
-	// making [0 - width] (for x) and [0 - height] (for y) 
-	// the minimums and maximums instead of -1 and 1
-	gluOrtho2D(0, width, 0, height);
+	// setting matrix
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
 }
 
 INLINE void manageTitle(std::chrono::steady_clock::time_point start)
@@ -208,7 +211,7 @@ INLINE void manageTitle(std::chrono::steady_clock::time_point start)
 INLINE void updatePlanetVBO()
 {
 	// setting the 
-	glVertexPointer(2, GL_FLOAT, 0, NULL);
+	glVertexPointer(RENDER_DIMENSIONS, GL_FLOAT, 0, NULL);
 
 	// binding the buffer
 	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
@@ -240,7 +243,7 @@ INLINE void render()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// draw vertex buffer
-	glDrawArrays(GL_POINTS, 0, MATRIX_HEIGHT);
+	glDrawArrays(GL_TRIANGLES, 0, MATRIX_HEIGHT);
 
 	// flush changes
 	glFlush();
