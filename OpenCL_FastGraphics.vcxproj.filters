@@ -27,4 +27,9 @@
       <Filter>CL files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bitmap_circle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

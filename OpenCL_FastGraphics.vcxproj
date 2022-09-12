@@ -81,8 +81,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Program Files\OpenCL\OpenCL\include;C:\VulkanSDK\glfw-3.3.4.bin.WIN64\glfw-3.3.4.bin.WIN64\include;C:\VulkanSDK\glew-2.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\OpenCL\OpenCL\lib;C:\VulkanSDK\glfw-3.3.4.bin.WIN64\glfw-3.3.4.bin.WIN64\lib-vc2019;C:\VulkanSDK\glew-2.1.0\lib\Release\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\GraphicsSDKs\glfw-3.3.4.bin.WIN64\glfw-3.3.4.bin.WIN64\include;C:\Program Files\OpenCL\OpenCL\include;C:\GraphicsSDKs\glew-2.1.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\OpenCL\OpenCL\lib;C:\GraphicsSDKs\glfw-3.3.4.bin.WIN64\glfw-3.3.4.bin.WIN64\lib-vc2019;C:\GraphicsSDKs\glew-2.1.0\lib\Release\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -149,6 +149,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="device.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bitmap_circle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

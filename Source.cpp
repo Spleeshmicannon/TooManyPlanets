@@ -22,6 +22,9 @@
 #include <cstdlib>
 #include <fstream>
 
+// bitmap texture
+#include "bitmap_circle.h"
+
 // width and height need to be saved in memory
 // for OpenGL calls.
 // -----------------------------------------
@@ -69,6 +72,7 @@ clObjects clObjs;
 uint8_t oldFps = 0;
 GLFWwindow* window;
 GLuint planets_vbo;
+GLuint texture;
 
 INLINE std::string readFile(const std::string filename)
 {
@@ -186,6 +190,20 @@ INLINE void configureOpenGL()
 
 	// make the new vbo active
 	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
+
+	// texture setup
+	
+	// saving texture ID
+	glGenTextures(1, &texture);
+	
+	// making the texture active
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// setting the texture image and passing image metadata
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, BMP_CIRCLE_WIDTH, BMP_CIRCLE_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, BMP_CIRCLE);
+	
+	// generating the mimpmap for the texture
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// setting matrix
 	glMatrixMode(GL_PROJECTION);
