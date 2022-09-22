@@ -74,6 +74,8 @@ GLFWwindow* window;
 GLuint planets_vbo;
 GLuint texture;
 
+static int frame_buffer[width * height];
+
 INLINE std::string readFile(const std::string filename)
 {
 	// technically this would be a little dodgy if
@@ -307,6 +309,14 @@ void setup()
 
 int main(int argc, char** argv)
 {
+	// start ffmpeg telling it to expect raw rgba 720p-60hz frames
+	// -i - tells it to read frames from stdin
+	const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1904x1072 -i - "
+		"-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip output.mp4";
+
+	// open pipe to ffmpeg's stdin in binary write mode
+	FILE* ffmpeg = _popen(cmd, "wb");
+
 	// sets up the program (OpenCL and OpenGL)
 	setup();
 
@@ -335,7 +345,13 @@ int main(int argc, char** argv)
 
 		// checking for events
 		glfwPollEvents();
+
+		// writing pixels to video file
+		glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, frame_buffer);
+		fwrite(frame_buffer, sizeof(int) * width * height, 1, ffmpeg);
 	}
+
+	_pclose(ffmpeg);
 
 	// terminate on close
 	glfwTerminate();
