@@ -16,9 +16,15 @@
     <Filter Include="CL files">
       <UniqueIdentifier>{fb1143ae-214a-4c01-832d-5d0907ce2e73}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{56fdbbdb-a5d1-4fd4-ab19-e3fc0fa282dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,10 +32,25 @@
     <None Include="device.cl">
       <Filter>CL files</Filter>
     </None>
+    <None Include="vertex_shader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="fragment_shader.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ShaderManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="bitmap_circle.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file_io.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="macros.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

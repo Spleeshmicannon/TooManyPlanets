@@ -24,6 +24,9 @@
 
 // bitmap texture
 #include "bitmap_circle.h"
+#include "macros.h"
+#include "file_io.h"
+#include "ShaderManager.h"
 
 // width and height need to be saved in memory
 // for OpenGL calls.
@@ -35,13 +38,6 @@
 // -----------------------------------------
 static constexpr size_t width = 1904;
 static constexpr size_t height = 1071;
-
-// using __forceinline only with compatible compiler
-#ifdef _MSC_VER
-#define INLINE __forceinline
-#else
-#define INLINE static inline
-#endif
 
 // some useful macros
 #define WINDOW_TITLE "OpenCL Render"
@@ -73,32 +69,10 @@ uint8_t oldFps = 0;
 GLFWwindow* window;
 GLuint planets_vbo;
 GLuint texture;
+ShaderManager * shader_manager;
+
 
 static int frame_buffer[width * height];
-
-INLINE std::string readFile(const std::string filename)
-{
-	// technically this would be a little dodgy if
-	// you were reading in more variable files
-	// but I'm reading the same one file every time
-	// so it's always going to work and is never
-	// going to be problem unless the file is changed
-
-	// string for file data to be stored in
-	std::string data;
-
-	// reading until \0 null termination character
-	std::getline(std::ifstream(filename), data, '\0');
-
-	// if data.size is 0, then the file wasn't found
-	if (data.size() == 0)
-	{
-		std::cerr << "No file found: " << filename << "\t\n";
-	}
-
-	// returning any found file data
-	return data;
-}
 
 INLINE void initOpenGL()
 {
@@ -211,6 +185,8 @@ INLINE void configureOpenGL()
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
+
+	shader_manager->use_program();
 }
 
 INLINE void manageTitle(std::chrono::steady_clock::time_point start)
@@ -290,6 +266,9 @@ void setup()
 	// initialising function pointers (glew.h)
 	initOpenGL();
 
+	// create shader manager (and shaders as a result)
+	shader_manager = new ShaderManager();
+
 	// configuring openGL settings
 	configureOpenGL();
 
@@ -312,7 +291,7 @@ int main(int argc, char** argv)
 	// start ffmpeg telling it to expect raw rgba 720p-60hz frames
 	// -i - tells it to read frames from stdin
 	const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1904x1072 -i - "
-		"-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip output.mp4";
+		"-preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip output.mp4";
 
 	// open pipe to ffmpeg's stdin in binary write mode
 	FILE* ffmpeg = _popen(cmd, "wb");
@@ -337,6 +316,10 @@ int main(int argc, char** argv)
 		// OpenGL render code
 		render();
 
+		// writing pixels to video file
+		glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, frame_buffer);
+		fwrite(frame_buffer, sizeof(int) * width * height, 2, ffmpeg);
+
 		// swaping front and back buffers
 		glfwSwapBuffers(window);
 
@@ -345,15 +328,15 @@ int main(int argc, char** argv)
 
 		// checking for events
 		glfwPollEvents();
-
-		// writing pixels to video file
-		glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, frame_buffer);
-		fwrite(frame_buffer, sizeof(int) * width * height, 1, ffmpeg);
 	}
 
 	_pclose(ffmpeg);
 
 	// terminate on close
 	glfwTerminate();
+
+	// deleting shader manager that is allocated in setup()
+	delete shader_manager;
+
 	return 0;
 }
