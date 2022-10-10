@@ -19,6 +19,9 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{56fdbbdb-a5d1-4fd4-ab19-e3fc0fa282dd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{bc13c97c-ad5f-4f1a-b6b8-5c2e8e2f46e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">
@@ -38,12 +41,10 @@
     <None Include="fragment_shader.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ShaderManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="bitmap_circle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="file_io.h">
@@ -51,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="macros.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>vendor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

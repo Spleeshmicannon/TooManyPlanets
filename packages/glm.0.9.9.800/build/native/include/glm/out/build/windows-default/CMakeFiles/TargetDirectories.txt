@@ -1,0 +1,2 @@
+C:/Users/n10255460/source/repos/TooManyPlanets/packages/glm.0.9.9.800/build/native/include/glm/out/build/windows-default/CMakeFiles/edit_cache.dir
+C:/Users/n10255460/source/repos/TooManyPlanets/packages/glm.0.9.9.800/build/native/include/glm/out/build/windows-default/CMakeFiles/rebuild_cache.dir

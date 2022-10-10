@@ -3,6 +3,14 @@
 #include <fstream>
 #include <iostream>
 
+#include "stb_image.h"
+
+struct Image
+{
+	unsigned char* data;
+	int width, height, nrChannels;
+};
+
 INLINE std::string readFile(const std::string filename)
 {
 	// technically this would be a little dodgy if
@@ -25,4 +33,12 @@ INLINE std::string readFile(const std::string filename)
 
 	// returning any found file data
 	return data;
+}
+
+INLINE Image read_bitmap(const std::string& filename)
+{
+	int width, height, nrChannels;
+	unsigned char * data = stbi_load(filename.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+
+	return { data, width, height, nrChannels };
 }

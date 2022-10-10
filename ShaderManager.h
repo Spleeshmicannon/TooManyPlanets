@@ -16,6 +16,12 @@
 
 #include "file_io.h"
 
+enum class UNIFORM_TYPE
+{
+	MAT4,
+	TEXTURE
+};
+
 class ShaderManager
 {
 public:
@@ -23,6 +29,7 @@ public:
 	~ShaderManager();
 
 	void use_program();
+	void add_uniform(UNIFORM_TYPE uni_type, const std::string &name, const void* value);
 private:
 	static bool compile_shader(const std::string& name, GLuint* shader, GLuint type);
 
