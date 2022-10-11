@@ -22,6 +22,18 @@
 #include <cstdlib>
 #include <fstream>
 
+// glm
+#include <glm/gtc/matrix_transform.hpp>
+
+// other project files
+#include "macros.h"
+#include "file_io.h"
+#include "ShaderManager.h"
+
+// defining implementation here
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 // width and height need to be saved in memory
 // for OpenGL calls.
 // -----------------------------------------
@@ -31,19 +43,14 @@
 // performance gain.
 // -----------------------------------------
 static constexpr size_t width = 1904;
-static constexpr size_t height = 1071;
-
-// using __forceinline only with compatible compiler
-#ifdef _MSC_VER
-#define INLINE __forceinline
-#else
-#define INLINE static inline
-#endif
+static constexpr size_t height = 1072;
 
 // some useful macros
 #define WINDOW_TITLE "OpenCL Render"
-#define MATRIX_HEIGHT 50000
+#define MATRIX_HEIGHT 20000
 #define MATRIX_WIDTH 5
+#define RENDER_DIMENSIONS 7 // adding extra dimensions for colour
+#define POINTS_COUNT 4
 
 // a convenient struct for storing the many OpenCL objects
 // that get used
@@ -59,38 +66,20 @@ struct clObjects
 };
 
 // computing sizes at compile time
-constexpr size_t planets_size_full = MATRIX_HEIGHT * MATRIX_WIDTH * sizeof(float);
-constexpr size_t planets_size_points = MATRIX_HEIGHT * 2 * sizeof(float);
+constexpr size_t planets_size = MATRIX_HEIGHT * MATRIX_WIDTH * sizeof(float);
+constexpr size_t planets_size_points = (MATRIX_HEIGHT * RENDER_DIMENSIONS * sizeof(float) * POINTS_COUNT);
 
 // global variables
 clObjects clObjs;
 uint8_t oldFps = 0;
 GLFWwindow* window;
 GLuint planets_vbo;
+GLuint planets_vao;
+GLuint texture;
+ShaderManager * shader_manager;
 
-INLINE std::string readFile(const std::string filename)
-{
-	// technically this would be a little dodgy if
-	// you were reading in more variable files
-	// but I'm reading the same one file every time
-	// so it's always going to work and is never
-	// going to be problem unless the file is changed
 
-	// string for file data to be stored in
-	std::string data;
-
-	// reading until \0 null termination character
-	std::getline(std::ifstream(filename), data, '\0');
-
-	// if data.size is 0, then the file wasn't found
-	if (data.size() == 0)
-	{
-		std::cerr << "No file found: " << filename << "\t\n";
-	}
-
-	// returning any found file data
-	return data;
-}
+static int frame_buffer[width * height];
 
 INLINE void initOpenGL()
 {
@@ -116,7 +105,7 @@ INLINE void setupOpenCL()
 
 	for (int i = 0; i < MATRIX_HEIGHT; ++i)
 	{
-		planets[(i * MATRIX_WIDTH) + 0 /*mass*/] = (float(rand() % 999) + 1.0f);
+		planets[(i * MATRIX_WIDTH) + 0 /*mass*/] = (float(rand() % 99) + 1.0f);
 		planets[(i * MATRIX_WIDTH) + 1 /*x*/] = ((float(rand() % width / 4)) * 2) + float(width / 4);
 		planets[(i * MATRIX_WIDTH) + 2 /*y*/] = ((float(rand() % height / 4)) * 2) + float(height / 4);
 		planets[(i * MATRIX_WIDTH) + 3 /*dx*/] = 0;
@@ -158,7 +147,7 @@ INLINE void setupOpenCL()
 	}
 
 	// setting up GPU memory objects
-	clObjs.inBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size_full);
+	clObjs.inBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size);
 	clObjs.outBuffer = cl::Buffer(clObjs.context, CL_MEM_READ_WRITE, planets_size_points);
 
 	// assigning vertex buffer to an OpenCL object for OpenCL OpenGL interop
@@ -166,7 +155,7 @@ INLINE void setupOpenCL()
 
 	// buffer initialisation
 	clObjs.queue = cl::CommandQueue(clObjs.context, cl::Device::getDefault());
-	clObjs.queue.enqueueWriteBuffer(clObjs.inBuffer, CL_TRUE, 0, planets_size_full, planets);
+	clObjs.queue.enqueueWriteBuffer(clObjs.inBuffer, CL_TRUE, 0, planets_size, planets);
 
 	// setting up compiled kernel for execution
 	clObjs.physicsKernel = cl::Kernel(clObjs.program, "planetCalc");
@@ -179,15 +168,64 @@ INLINE void setupOpenCL()
 
 INLINE void configureOpenGL()
 {
+	// use shaders
+	shader_manager->use_program();
+
+	// create vao
+	glGenVertexArrays(1, &planets_vao);
+
 	// create vbo and use variable id to store vbo id
 	glGenBuffers(1, &planets_vbo);
+
+	// bind vao
+	glBindVertexArray(planets_vao);
 
 	// make the new vbo active
 	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
 
-	// making [0 - width] (for x) and [0 - height] (for y) 
-	// the minimums and maximums instead of -1 and 1
-	gluOrtho2D(0, width, 0, height);
+	// texture setup
+	
+	// saving texture ID
+	glGenTextures(1, &texture);
+	
+	// making the texture active
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// get texture with stb_image from assets folder
+	Image image = read_bitmap("./assets/circle.png");
+
+	// setting the texture image and passing image metadata
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
+	
+	// freeing data since its on the GPU now
+	stbi_image_free(image.data);
+
+	// generating the mimpmap for the texture
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// setting matrix
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+	//glMatrixMode(GL_MODELVIEW);
+
+	glm::mat4 Projection = glm::ortho<float>(0, 2, 0, 2);
+	glm::mat4 mvp = Projection * glm::lookAt(
+		glm::vec3(-1.5, -1, 2),
+		glm::vec3(-0.75, -1, -1),
+		glm::vec3(0, 1, 0)
+	);
+
+	shader_manager->add_uniform(UNIFORM_TYPE::MAT4, "MVP", &mvp[0][0]);
+	shader_manager->add_uniform(UNIFORM_TYPE::TEXTURE, "texture_data", (void*)0);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 INLINE void manageTitle(std::chrono::steady_clock::time_point start)
@@ -208,10 +246,20 @@ INLINE void manageTitle(std::chrono::steady_clock::time_point start)
 INLINE void updatePlanetVBO()
 {
 	// setting the 
-	glVertexPointer(2, GL_FLOAT, 0, NULL);
+	//glVertexPointer(RENDER_DIMENSIONS, GL_FLOAT, 2 * sizeof(float), NULL);
 
 	// binding the buffer
 	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
+
+	// doing magic shit
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, RENDER_DIMENSIONS * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, RENDER_DIMENSIONS * sizeof(float), (void*)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, RENDER_DIMENSIONS * sizeof(float), (void*)(5 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 }
 
 INLINE void runOpenCL()
@@ -239,8 +287,17 @@ INLINE void render()
 	// clear screen to avoid onioning
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	// draw vertex buffer
-	glDrawArrays(GL_POINTS, 0, MATRIX_HEIGHT);
+	// bind buffer
+	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
+	glBindVertexArray(planets_vao);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	
+	// use shaders
+	shader_manager->use_program();
+
+	glDrawArrays(GL_QUADS, 0, MATRIX_HEIGHT);
 
 	// flush changes
 	glFlush();
@@ -267,17 +324,18 @@ void setup()
 	// initialising function pointers (glew.h)
 	initOpenGL();
 
+	// create shader manager (and shaders as a result)
+	shader_manager = new ShaderManager();
+
 	// configuring openGL settings
 	configureOpenGL();
 
 	// setting vertex buffer data
 	// the data var is NULL since I'll get it from OpenCL
-	glBufferData(GL_ARRAY_BUFFER, planets_size_points, NULL, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, planets_size_points, NULL, GL_DYNAMIC_DRAW);
 
 	// initial data binding to complete setup
 	updatePlanetVBO();
-
-	glEnableClientState(GL_VERTEX_ARRAY);
 
 	// compiling/preparing the OpenCL compute shaders and setting up the queue
 	setupOpenCL();
@@ -286,6 +344,14 @@ void setup()
 
 int main(int argc, char** argv)
 {
+	// start ffmpeg telling it to expect raw rgba 720p-60hz frames
+	// -i - tells it to read frames from stdin
+	const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1904x1072 -i - "
+		"-preset slow -pix_fmt yuv420p -y -crf 10 -vf vflip output.mp4";
+
+	// open pipe to ffmpeg's stdin in binary write mode
+	FILE* ffmpeg = _popen(cmd, "wb");
+
 	// sets up the program (OpenCL and OpenGL)
 	setup();
 
@@ -306,6 +372,10 @@ int main(int argc, char** argv)
 		// OpenGL render code
 		render();
 
+		// writing pixels to video file
+		glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, frame_buffer);
+		fwrite(frame_buffer, sizeof(int) * width * height, 1, ffmpeg);
+
 		// swaping front and back buffers
 		glfwSwapBuffers(window);
 
@@ -316,7 +386,13 @@ int main(int argc, char** argv)
 		glfwPollEvents();
 	}
 
+	_pclose(ffmpeg);
+
 	// terminate on close
 	glfwTerminate();
+
+	// deleting shader manager that is allocated in setup()
+	delete shader_manager;
+
 	return 0;
 }
