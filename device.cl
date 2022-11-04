@@ -1,8 +1,8 @@
-#define MATRIX_HEIGHT 20000
+#define MATRIX_HEIGHT 50000
 #define MATRIX_WIDTH 5
 #define RENDER_DIMENSIONS 7
-#define width 1904
-#define height 1071
+#define width 2856
+#define height 1608
 #define POINTS_COUNT 4
 #define COLOR_RGB 3
 
@@ -11,7 +11,7 @@
 #define Y 2
 #define DX 3
 #define DY 4
-#define G 0.000006743f
+#define G (0.000006743f)
 
 __kernel void planetCalc(__global float planet[MATRIX_HEIGHT][MATRIX_WIDTH], 
 	__global float outPlanet[MATRIX_HEIGHT][(RENDER_DIMENSIONS * POINTS_COUNT)])
@@ -19,7 +19,6 @@ __kernel void planetCalc(__global float planet[MATRIX_HEIGHT][MATRIX_WIDTH],
 	// Get the index of the current element to be processed
 	__private int i = get_global_id(0);
 	__private float fx = 0, fy = 0;
-
 
 	// calcualte force
 	for (int j = 0; j < MATRIX_HEIGHT; ++j) // B
@@ -46,8 +45,8 @@ __kernel void planetCalc(__global float planet[MATRIX_HEIGHT][MATRIX_WIDTH],
 	planet[i][Y] += planet[i][DY];
 
 	// calculate what is drawn
-	const float x = (planet[i][X] / width) - 0.5;
-	const float y = (planet[i][Y] / height) - 0.5;
+	const float x = (planet[i][X] / (width)) - 0.35;
+	const float y = (planet[i][Y] / (height)) - 0.35;
 	const float mass = (0.5 - (planet[i][MASS] + 0.01 / planet[i][MASS])) / 5000;
 
 	__private float velocity = planet[i][DX];
@@ -65,10 +64,18 @@ __kernel void planetCalc(__global float planet[MATRIX_HEIGHT][MATRIX_WIDTH],
 	{
 		velocity += planet[i][DY];
 	}
+#define RAW_RED		0.05
+#define RAW_GREEN	0.9
+#define RAW_BLUE	1.0
 
-	const float RED		= 0.8 - (0.8 / velocity);
-	const float GREEN	= 0;
-	const float BLUE	= 0.7 / velocity;
+	float RED	= 0.1 - (RAW_RED * (velocity * 6));
+	float GREEN	= 1.0 - (RAW_GREEN * (velocity / 2));
+	float BLUE	= 1.0 - (RAW_BLUE * (velocity / 3));
+	
+	if(RED < 0) 
+	{
+		RED = -RED;
+	}
 
 	// ------------- Point 1 -------------
 	outPlanet[i][0] = x;

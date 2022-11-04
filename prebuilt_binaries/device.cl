@@ -67,9 +67,18 @@ __kernel void planetCalc(__global float planet[MATRIX_HEIGHT][MATRIX_WIDTH],
 	}
 
 
-	const float RED		= 0.8 - (0.8 / velocity);
-	const float GREEN	= 0;
-	const float BLUE	= 0.7 / velocity;
+#define RAW_RED		0.05
+#define RAW_GREEN	0.9
+#define RAW_BLUE	1.0
+
+	float RED	= 0.1 - (RAW_RED * (velocity * 6));
+	float GREEN	= 1.0 - (RAW_GREEN * (velocity / 2));
+	float BLUE	= 1.0 - (RAW_BLUE * (velocity / 3));
+	
+	if(RED < 0) 
+	{
+		RED = -RED;
+	}
 
 	// ------------- Point 1 -------------
 	outPlanet[i][0] = x;

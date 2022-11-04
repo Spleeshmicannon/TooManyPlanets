@@ -21,6 +21,7 @@
 #include <string>
 #include <cstdlib>
 #include <fstream>
+#include <random>
 
 // glm
 #include <glm/gtc/matrix_transform.hpp>
@@ -42,12 +43,12 @@
 // but that seems to complex for a 0.00000001ms
 // performance gain.
 // -----------------------------------------
-static constexpr size_t width = 1904;
+static constexpr size_t width = 1928;
 static constexpr size_t height = 1072;
 
 // some useful macros
 #define WINDOW_TITLE "OpenCL Render"
-#define MATRIX_HEIGHT 20000
+#define MATRIX_HEIGHT 50000
 #define MATRIX_WIDTH 5
 #define RENDER_DIMENSIONS 7 // adding extra dimensions for colour
 #define POINTS_COUNT 4
@@ -103,11 +104,23 @@ INLINE void setupOpenCL()
 	// allocating memory for initial planet setup
 	float* planets = new float[MATRIX_HEIGHT * MATRIX_WIDTH];
 
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution(-(int)height*1.5, height*1.5);
+
 	for (int i = 0; i < MATRIX_HEIGHT; ++i)
 	{
+		float x, y, sqrt_val;
+		do
+		{
+			x = distribution(generator);
+			y = distribution(generator);
+
+			sqrt_val = sqrt((x * x) + (y * y));
+		} while (!(sqrt_val < (height * 1.5f)));
+
 		planets[(i * MATRIX_WIDTH) + 0 /*mass*/] = (float(rand() % 99) + 1.0f);
-		planets[(i * MATRIX_WIDTH) + 1 /*x*/] = ((float(rand() % width / 4)) * 2) + float(width / 4);
-		planets[(i * MATRIX_WIDTH) + 2 /*y*/] = ((float(rand() % height / 4)) * 2) + float(height / 4);
+		planets[(i * MATRIX_WIDTH) + 1 /*x*/] = rand() % width;
+		planets[(i * MATRIX_WIDTH) + 2 /*y*/] = rand() % height;
 		planets[(i * MATRIX_WIDTH) + 3 /*dx*/] = 0;
 		planets[(i * MATRIX_WIDTH) + 4 /*dy*/] = 0;
 	}
@@ -243,14 +256,8 @@ INLINE void manageTitle(std::chrono::steady_clock::time_point start)
 	}
 }
 
-INLINE void updatePlanetVBO()
+INLINE void setVertexAttributePointers()
 {
-	// setting the 
-	//glVertexPointer(RENDER_DIMENSIONS, GL_FLOAT, 2 * sizeof(float), NULL);
-
-	// binding the buffer
-	glBindBuffer(GL_ARRAY_BUFFER, planets_vbo);
-
 	// doing magic shit
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, RENDER_DIMENSIONS * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -334,8 +341,8 @@ void setup()
 	// the data var is NULL since I'll get it from OpenCL
 	glBufferData(GL_ARRAY_BUFFER, planets_size_points, NULL, GL_DYNAMIC_DRAW);
 
-	// initial data binding to complete setup
-	updatePlanetVBO();
+	// set vertex attribute pointers so data is compatible with shaders
+	setVertexAttributePointers();
 
 	// compiling/preparing the OpenCL compute shaders and setting up the queue
 	setupOpenCL();
@@ -346,8 +353,8 @@ int main(int argc, char** argv)
 {
 	// start ffmpeg telling it to expect raw rgba 720p-60hz frames
 	// -i - tells it to read frames from stdin
-	const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1904x1072 -i - "
-		"-preset slow -pix_fmt yuv420p -y -crf 10 -vf vflip output.mp4";
+	const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1928x1072 -i - "
+		"-preset slow -pix_fmt yuv420p -y -crf 1 -vf vflip output.mp4";
 
 	// open pipe to ffmpeg's stdin in binary write mode
 	FILE* ffmpeg = _popen(cmd, "wb");
@@ -357,9 +364,6 @@ int main(int argc, char** argv)
 
 	// initial running of OpenCL do get data
 	runOpenCL();
-
-	// getting first from from OpenCL
-	updatePlanetVBO();
 
 	// main program loop
 	while (!glfwWindowShouldClose(window))

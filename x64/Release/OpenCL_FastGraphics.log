@@ -1,9 +1,13 @@
 ﻿  Source.cpp
-C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(234,32): warning C4244: 'initializing': conversion from 'double' to 'uint8_t', possible loss of data
-C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(234,20): warning C4244: 'initializing': conversion from 'double' to 'const uint8_t', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(115,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(116,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(122,50): warning C4244: '=': conversion from 'size_t' to 'float', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(123,50): warning C4244: '=': conversion from 'size_t' to 'float', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(247,32): warning C4244: 'initializing': conversion from 'double' to 'uint8_t', possible loss of data
+C:\Users\n10255460\source\repos\TooManyPlanets\Source.cpp(247,20): warning C4244: 'initializing': conversion from 'double' to 'const uint8_t', possible loss of data
   Generating code
-  0 of 820 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
+  8 of 835 functions ( 1.0%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+    8 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   OpenCL_FastGraphics.vcxproj -> C:\Users\n10255460\Source\Repos\TooManyPlanets\x64\Release\OpenCL_FastGraphics.exe
